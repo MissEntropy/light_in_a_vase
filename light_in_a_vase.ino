@@ -1,38 +1,41 @@
 #include <FastLED.h>
+#include "leds.h"
+#include "thermometer.h"
 
-#define LED_PIN     7
-#define NUM_LEDS    7
+// HW definitions: leds
+const int led_pin = 7;
+const int num_leds = 7;
 
-CRGB leds[NUM_LEDS];
-const int lm35_pin = A1; /* LM35 O/P pin */
-const float too_hot = 35.0 ;
+// HW definitions: Thermometer
+const int temprature_sensor_pin = A1; /* LM35 O/P pin */
+const int cooldown_period_miliseconds = 10000;
+const int temp_monitor_cycle_period_miliseconds = 5000;
+const float too_hot = 35.0;
+
+
+// Actual code starts here
+void verbose_delay(int delay_period_miliseconds){
+  Serial.print("Starting a delay of ");
+  Serial.print(delay_period_miliseconds/1000);
+  Serial.print(" seconds\n");
+  delay(delay_period_miliseconds);
+}
+
 void setup() {
-  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
   Serial.begin(9600);
-
+  initialize_leds(led_pin, num_leds);
+  initialize_thermometer(temprature_sensor_pin);
 }
 
 void loop() {
-      int temp_adc_val;
-      float temp_val;
-      temp_adc_val = analogRead(lm35_pin);  /* Read Temperature */
-      temp_val = (temp_adc_val * 4.88);      /* Convert adc value to equivalent voltage */
-      temp_val = (temp_val/10);  /* LM35 gives output of 10mv/°C */
-      Serial.print("Temperature = ");
-      Serial.print(temp_val);
-      Serial.print(" Degree Celsius\n");
-      for (int pinIndex = 0; pinIndex < NUM_LEDS; pinIndex++) {
-        if (temp_val > too_hot){
-          leds[pinIndex] = CRGB(0, 0, 0);
-        }
-        else {
-          leds[pinIndex] = CRGB(225, 225, 225);
-        }
-        FastLED.show();
-        delay(500);
-      }
-    if (temp_val > too_hot){
-      Serial.print("too hot!, stop for 30 seconds to cooldown");
-      delay(1000 * 30);
-    }
+  float temprature = read_temprature_celsius();
+  if (temprature > too_hot){
+    Serial.print("This is too hot!\n");
+    leds_off();
+    verbose_delay(cooldown_period_miliseconds);
+  } else {
+    Serial.print("Things are cool, keep going.\n");
+    leds_on();
+    verbose_delay(temp_monitor_cycle_period_miliseconds);
+  }
 }
