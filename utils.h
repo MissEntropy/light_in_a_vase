@@ -1,0 +1,1 @@
+void verbose_delay(int delay_period_miliseconds);
